@@ -13,8 +13,10 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Configuration
-local DAY_LENGTH = 24 * 60 -- 24 minutes for a full day-night cycle (in seconds)
-local MINUTES_PER_SECOND = 24 / (DAY_LENGTH / 60) -- How many in-game minutes pass per real second
+local CYCLE_MINUTES = 24 -- 24 minutes for a full day-night cycle
+local SECONDS_PER_MINUTE = 60
+local DAY_LENGTH = CYCLE_MINUTES * SECONDS_PER_MINUTE -- Total cycle length in seconds
+local MINUTES_PER_SECOND = 24 / CYCLE_MINUTES -- How many in-game minutes pass per real second
 local DAY_START_HOUR = 6 -- 6 AM
 local NIGHT_START_HOUR = 18 -- 6 PM
 

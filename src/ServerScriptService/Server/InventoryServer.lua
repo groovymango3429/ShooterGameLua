@@ -120,8 +120,12 @@ function InventoryServer.OnPlayerAdded(player:Player)
 		
 		-- Apply armor stats when character spawns
 		local hum: Humanoid = char:WaitForChild("Humanoid")
-		task.wait(0.1) -- Small delay to ensure character is fully loaded
-		InventoryServer.UpdateArmorStats(player)
+		-- Wait for character to fully load before applying stats
+		-- This ensures all character components are initialized
+		task.spawn(function()
+			task.wait(0.1) -- Small delay for character initialization
+			InventoryServer.UpdateArmorStats(player)
+		end)
 		
 		hum.Died:Connect(function()
 			InventoryServer.Respawning[player] = true 
