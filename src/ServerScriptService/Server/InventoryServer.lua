@@ -438,13 +438,21 @@ function InventoryServer.EquipArmor(player: Player, stackId: number): boolean?
 		--Welding
 		for i, partModel: Model in clone:GetChildren() do
 			local bodyPart: BasePart = char:FindFirstChild(partModel.Name)
-			if bodyPart then
+			if bodyPart and partModel.PrimaryPart then
+				-- Position the armor part at the body part location first
+				partModel.PrimaryPart.CFrame = bodyPart.CFrame
+				
+				-- Create weld with proper CFrame offsets to prevent teleportation
 				local weld = Instance.new("Weld")
 				weld.Parent = bodyPart
 				weld.Part0 = bodyPart
 				weld.Part1 = partModel.PrimaryPart
+				weld.C0 = CFrame.new(0, 0, 0)
+				weld.C1 = CFrame.new(0, 0, 0)
+			elseif bodyPart and not partModel.PrimaryPart then
+				warn(`The armor model {clone.Name} has body part model {partModel.Name}, but the PrimaryPart is not set.`)
 			else
-				warn(`The armor model {clone.name} has body part model {partModel.Name}, but no body part was found by that name. `)
+				warn(`The armor model {clone.Name} has body part model {partModel.Name}, but no body part was found by that name.`)
 			end
 			
 		end
