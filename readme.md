@@ -44,16 +44,16 @@ Every 4 days, a massive **zombie horde** attacks the player’s base, forcing pl
 
 ### 🔰 Stage 1: Core Gameplay Loop
 - [x] Custom inventory system with drag/drop and hotbar  
-- [ ] Day-night cycle with lighting and zombie threat scaling  
-- [ ] Zombie AI with roaming and attacking behavior  
-- [ ] Basic melee combat and damage system  
+- [x] Day-night cycle with lighting and zombie threat scaling  
+- [x] Zombie AI with roaming and attacking behavior  
+- [x] Basic melee combat and damage system  
 - [x] Loot pickup and drop system  
 
 ### 🏕️ Stage 2: Base Building & Crafting
-- [ ] Crafting workbench and recipe logic  
-- [ ] Base building with placeable walls and foundations  
+- [x] Crafting workbench and recipe logic  
+- [x] Base building with placeable walls and foundations  
 - [ ] Basic machines: furnace, sawbench  
-- [X] Backpack and armor equipment slots  
+- [x] Backpack and armor equipment slots  
 
 ### 🧟 Stage 3: Horde & Combat Expansion
 - [ ] 4-day horde system with wave logic  
@@ -64,8 +64,8 @@ Every 4 days, a massive **zombie horde** attacks the player’s base, forcing pl
 ### 🌍 Stage 4: World Systems
 - [ ] Boat travel system between islands  
 - [ ] Procedural loot island generation  
-- [X] Save/load player inventory and base  
-- [ ] Sound effects and ambient music  
+- [x] Save/load player inventory and base  
+- [x] Sound effects and ambient music  
 
 ### 🔮 Stage 5: Polish & Expansion 
 - [ ] NPC faction encounters or traders  
@@ -81,25 +81,25 @@ Every 4 days, a massive **zombie horde** attacks the player’s base, forcing pl
 - [x] Project folder structure
 - [x] Inventory system with drag/drop
 - [x] Item pickup/drop
-- [ ] Item data structure (icons, weight, stats)
+- [x] Item data structure (icons, weight, stats)
 
 ### Week 2: Time, Enemies & Combat
-- [ ] Day-night cycle logic and lighting
-- [ ] Zombie AI: roam, chase, attack
-- [ ] Melee combat system
-- [ ] Health & damage system
+- [x] Day-night cycle logic and lighting
+- [x] Zombie AI: roam, chase, attack
+- [x] Melee combat system
+- [x] Health & damage system
 
 ### Week 3: Crafting and Tools
-- [ ] Crafting UI and module
-- [ ] Workbench machine
-- [ ] Recipes: weapons, arrows, tools
+- [x] Crafting UI and module
+- [x] Workbench machine
+- [x] Recipes: weapons, arrows, tools
 - [ ] Item durability (optional)
 
 ### Week 4: Building & Equipment
-- [ ] Placeable walls/floors with snapping
-- [ ] Backpack/armor equip system
-- [ ] Stat effects from gear
-- [ ] Storage crates
+- [x] Placeable walls/floors with snapping
+- [x] Backpack/armor equip system
+- [x] Stat effects from gear
+- [x] Storage crates
 
 ### Week 5: Horde & Traps
 - [ ] 4-day horde attack system
