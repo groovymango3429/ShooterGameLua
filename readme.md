@@ -44,7 +44,7 @@ Every 4 days, a massive **zombie horde** attacks the player’s base, forcing pl
 
 ### 🔰 Stage 1: Core Gameplay Loop
 - [x] Custom inventory system with drag/drop and hotbar  
-- [ ] Day-night cycle with lighting and zombie threat scaling  
+- [x] Day-night cycle with lighting and zombie threat scaling  
 - [x] Zombie AI with roaming and attacking behavior  
 - [x] Basic melee combat and damage system  
 - [x] Loot pickup and drop system  
@@ -84,7 +84,7 @@ Every 4 days, a massive **zombie horde** attacks the player’s base, forcing pl
 - [x] Item data structure (icons, weight, stats)
 
 ### Week 2: Time, Enemies & Combat
-- [ ] Day-night cycle logic and lighting
+- [x] Day-night cycle logic and lighting
 - [x] Zombie AI: roam, chase, attack
 - [x] Melee combat system
 - [x] Health & damage system
@@ -98,7 +98,7 @@ Every 4 days, a massive **zombie horde** attacks the player’s base, forcing pl
 ### Week 4: Building & Equipment
 - [x] Placeable walls/floors with snapping
 - [x] Backpack/armor equip system
-- [ ] Stat effects from gear
+- [x] Stat effects from gear
 - [x] Storage crates
 
 ### Week 5: Horde & Traps

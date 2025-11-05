@@ -116,8 +116,13 @@ function InventoryServer.OnPlayerAdded(player:Player)
 		end)
 		player.Backpack.ChildRemoved:Connect(function(child: Instance)
 			InventoryServer.UnregisterItem(player, child)
-		end)			
+		end)
+		
+		-- Apply armor stats when character spawns
 		local hum: Humanoid = char:WaitForChild("Humanoid")
+		task.wait(0.1) -- Small delay to ensure character is fully loaded
+		InventoryServer.UpdateArmorStats(player)
+		
 		hum.Died:Connect(function()
 			InventoryServer.Respawning[player] = true 
 			InventoryServer.UnholdItems(player)
@@ -487,6 +492,8 @@ function InventoryServer.UpdateArmorStats(player: Player)
 	--looping through armor and summing buffs
 	local inv: Types.Inventory = InventoryServer.AllInventories[player]
 	local totalHealthBuff: number = 0
+	local totalDefenseBuff: number = 0
+	local totalSpeedBuff: number = 0
 	
 	for armorType: string, stackId: number in inv.Armor do
 		--finding armor stack
@@ -494,10 +501,20 @@ function InventoryServer.UpdateArmorStats(player: Player)
 		local stackData: Types.StackData = InventoryServer.FindStackDataFromId(player, stackId)
 		if not stackData then continue end
 		
-		--checking or addding buff
+		--checking and adding buffs
 		local healthBuff = stackData.Items[1]:GetAttribute("HealthBuff")
 		if healthBuff ~= nil then
 			totalHealthBuff += healthBuff
+		end
+		
+		local defenseBuff = stackData.Items[1]:GetAttribute("DefenseBuff")
+		if defenseBuff ~= nil then
+			totalDefenseBuff += defenseBuff
+		end
+		
+		local speedBuff = stackData.Items[1]:GetAttribute("SpeedBuff")
+		if speedBuff ~= nil then
+			totalSpeedBuff += speedBuff
 		end
 	end
 	
@@ -505,10 +522,16 @@ function InventoryServer.UpdateArmorStats(player: Player)
 	local char = player.Character; if not char then return end
 	local hum = char:FindFirstChild("Humanoid"); if not hum then return end
 	
-	--Adding buffs
+	--Adding health buffs
 	local currentHealthPerc = hum.Health / hum.MaxHealth
 	hum.MaxHealth = 100 + totalHealthBuff
 	hum.Health = hum.MaxHealth * currentHealthPerc
+	
+	--Adding speed buffs
+	hum.WalkSpeed = 16 + totalSpeedBuff -- 16 is default Roblox walk speed
+	
+	--Store defense buff as attribute for damage calculations
+	player:SetAttribute("DefenseBonus", totalDefenseBuff)
 end
 
 --Clearing armor models
