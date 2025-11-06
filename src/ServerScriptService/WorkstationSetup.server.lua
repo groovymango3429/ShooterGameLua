@@ -6,34 +6,53 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
--- Create a BillboardGui template for workstations
-local function createBillboardGuiTemplate()
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "InteractionPrompt"
-	billboard.Size = UDim2.new(0, 200, 0, 50)
-	billboard.StudsOffset = Vector3.new(0, 3, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Enabled = false -- Will be enabled by WorkstationClient when player is near
-	
-	local frame = Instance.new("Frame")
-	frame.Name = "Frame"
-	frame.Size = UDim2.new(1, 0, 1, 0)
-	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	frame.BackgroundTransparency = 0.5
-	frame.BorderSizePixel = 0
-	frame.Parent = billboard
-	
-	local textLabel = Instance.new("TextLabel")
-	textLabel.Name = "PromptText"
-	textLabel.Size = UDim2.new(1, 0, 1, 0)
-	textLabel.BackgroundTransparency = 1
-	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	textLabel.TextScaled = true
-	textLabel.Font = Enum.Font.SourceSansBold
-	textLabel.Text = "Press [E] to Use"
-	textLabel.Parent = frame
-	
-	return billboard
+-- Get the LootItemBillboardGui template from ReplicatedStorage
+local function getBillboardGuiTemplate()
+	local guiTemplate = ReplicatedStorage:FindFirstChild("LootItemBillboardGui")
+	if not guiTemplate then
+		warn("[WorkstationSetup] LootItemBillboardGui template not found in ReplicatedStorage!")
+		warn("[WorkstationSetup] Creating a fallback template...")
+		-- Create a fallback template with the required structure
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "LootItemBillboardGui"
+		billboard.Size = UDim2.new(0, 200, 0, 80)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Enabled = false -- Will be enabled by WorkstationClient when player is near
+		
+		local frame = Instance.new("Frame")
+		frame.Name = "Frame"
+		frame.Size = UDim2.new(1, 0, 1, 0)
+		frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		frame.BackgroundTransparency = 0.5
+		frame.BorderSizePixel = 0
+		frame.Parent = billboard
+		
+		local descLabel = Instance.new("TextLabel")
+		descLabel.Name = "Desc"
+		descLabel.Size = UDim2.new(1, 0, 0.4, 0)
+		descLabel.Position = UDim2.new(0, 0, 0, 0)
+		descLabel.BackgroundTransparency = 1
+		descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+		descLabel.TextScaled = true
+		descLabel.Font = Enum.Font.SourceSans
+		descLabel.Text = "Press [E] to Use"
+		descLabel.Parent = frame
+		
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Name = "StringName"
+		nameLabel.Size = UDim2.new(1, 0, 0.6, 0)
+		nameLabel.Position = UDim2.new(0, 0, 0.4, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		nameLabel.TextScaled = true
+		nameLabel.Font = Enum.Font.SourceSansBold
+		nameLabel.Text = "Workstation"
+		nameLabel.Parent = frame
+		
+		return billboard
+	end
+	return guiTemplate
 end
 
 -- Set up a single workstation with BillboardGui
@@ -60,18 +79,43 @@ local function setupWorkstation(workstation)
 		return
 	end
 	
-	-- Remove existing InteractionPrompt if it exists
+	-- Remove existing prompts if they exist
 	local existingPrompt = attachPart:FindFirstChild("InteractionPrompt")
 	if existingPrompt then
 		existingPrompt:Destroy()
 	end
-	
-	-- Create and attach new BillboardGui
-	local billboard = createBillboardGuiTemplate()
-	local textLabel = billboard.Frame:FindFirstChild("PromptText")
-	if textLabel then
-		textLabel.Text = "Press [E] to Use " .. workstation.Name
+	local existingLootGui = attachPart:FindFirstChild("LootItemBillboardGui")
+	if existingLootGui then
+		existingLootGui:Destroy()
 	end
+	
+	-- Get and clone the LootItemBillboardGui template
+	local guiTemplate = getBillboardGuiTemplate()
+	local billboard = guiTemplate:Clone()
+	
+	-- Update the text fields to show workstation information
+	local frame = billboard:FindFirstChild("Frame")
+	if frame then
+		-- Set the Desc label (instruction text) if it exists
+		local descLabel = frame:FindFirstChild("Desc")
+		if descLabel and descLabel:IsA("TextLabel") then
+			descLabel.Text = "Press [E] to Use"
+		end
+		
+		-- Set the StringName label (workstation name) - this is the primary field
+		local nameLabel = frame:FindFirstChild("StringName")
+		if nameLabel and nameLabel:IsA("TextLabel") then
+			nameLabel.Text = workstation.Name
+		end
+		
+		-- Also check for "Name" label for compatibility with LootItemBillboardGui template from ReplicatedStorage
+		-- (The fallback template uses StringName, but the actual template may use Name)
+		local altNameLabel = frame:FindFirstChild("Name")
+		if altNameLabel and altNameLabel:IsA("TextLabel") then
+			altNameLabel.Text = workstation.Name
+		end
+	end
+	
 	billboard.Parent = attachPart
 	
 	print("[WorkstationSetup] Successfully set up:", workstation.Name)

@@ -270,6 +270,7 @@ if firstRecipes[1] then
 end
 
 -- T key toggles crafting GUI (without station filter)
+-- E key closes crafting GUI if it's open
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then return end
 	if input.KeyCode == Enum.KeyCode.T then
@@ -280,6 +281,12 @@ UserInputService.InputBegan:Connect(function(input, processed)
 			currentStation = nil
 			UpdateStationTitle()
 			ShowRecipesByCategory(currentCategory or "All")
+		end
+	elseif input.KeyCode == Enum.KeyCode.E then
+		-- Close the crafting GUI if it's open
+		-- The PropertyChangedSignal handler will manage mouse visibility and cleanup
+		if background.Visible then
+			background.Visible = false
 		end
 	end
 end)
