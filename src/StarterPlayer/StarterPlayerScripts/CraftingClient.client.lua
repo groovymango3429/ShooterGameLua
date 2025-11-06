@@ -21,6 +21,7 @@ itemTemplate.Visible = false
 local favoriteRecipes = {}
 local currentCategory = nil
 local selectedRecipe = nil
+local currentStation = nil -- Track which station we're at (nil = no filter)
 
 -- RemoteEvent for crafting (should exist in ReplicatedStorage)
 local Events = ReplicatedStorage:WaitForChild("Events")
@@ -98,6 +99,19 @@ function ShowRecipesByCategory(category)
 	else
 		recipes = RecipeDatabase:GetByCategory(category)
 	end
+	
+	-- Filter by station if we're at a workstation
+	if currentStation then
+		local filteredRecipes = {}
+		for _, recipe in ipairs(recipes) do
+			local recipeStation = recipe.station or "None"
+			if recipeStation == currentStation or recipeStation == "None" then
+				table.insert(filteredRecipes, recipe)
+			end
+		end
+		recipes = filteredRecipes
+	end
+	
 	for i, recipe in ipairs(recipes) do
 		CreateRecipeItem(i, recipe)
 	end
@@ -210,12 +224,41 @@ for _, button in ipairs(categoriesFrame:GetChildren()) do
 	end
 end
 
+-- Function to update station title in UI
+local function UpdateStationTitle()
+	-- Look for a station title label in the UI
+	local titleLabel = background:FindFirstChild("StationTitle")
+	if titleLabel and titleLabel:IsA("TextLabel") then
+		if currentStation then
+			titleLabel.Text = "Crafting at: " .. currentStation
+			titleLabel.Visible = true
+		else
+			titleLabel.Visible = false
+		end
+	end
+end
+
 local function SetMouseVisible(visible)
 	UserInputService.MouseIconEnabled = visible
 end
 
+-- Listen for OpenCraftingGUI event from server
+local OpenCraftingGUIEvent = Events:WaitForChild("OpenCraftingGUI")
+OpenCraftingGUIEvent.OnClientEvent:Connect(function(stationName)
+	print("[CraftingClient] Opening crafting menu for station:", stationName)
+	currentStation = stationName
+	background.Visible = true
+	UpdateStationTitle()
+	ShowRecipesByCategory(currentCategory or "All")
+end)
+
 background:GetPropertyChangedSignal("Visible"):Connect(function()
 	SetMouseVisible(background.Visible)
+	-- Clear station filter when closing GUI
+	if not background.Visible then
+		currentStation = nil
+		UpdateStationTitle()
+	end
 end)
 
 SetMouseVisible(background.Visible)
@@ -226,12 +269,18 @@ if firstRecipes[1] then
 	ShowRecipeDetails(firstRecipes[1])
 end
 
--- I key toggles crafting GUI
+-- T key toggles crafting GUI (without station filter)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then return end
 	if input.KeyCode == Enum.KeyCode.T then
 		background.Visible = not background.Visible
 		SetMouseVisible(background.Visible)
+		-- Clear station filter when opening manually
+		if background.Visible then
+			currentStation = nil
+			UpdateStationTitle()
+			ShowRecipesByCategory(currentCategory or "All")
+		end
 	end
 end)
 

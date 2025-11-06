@@ -934,6 +934,62 @@ RecipeDatabase.AllRecipes = {
 		outputItem = {item = "Sewing Kit", amount = 1},
 		station = "Sewing Station",
 	},
+
+	-- Furnace recipes
+	{
+		id = "iron_ingot",
+		name = "Iron Ingot",
+		category = "Materials",
+		requiredItems = {
+			{item = "Scrap Metal", amount = 3},
+			{item = "Charcoal", amount = 1},
+		},
+		outputItem = {item = "Iron Ingot", amount = 1},
+		station = "Furnace",
+	},
+	{
+		id = "brick",
+		name = "Brick",
+		category = "Materials",
+		requiredItems = {
+			{item = "Stone", amount = 3},
+		},
+		outputItem = {item = "Brick", amount = 1},
+		station = "Furnace",
+	},
+	{
+		id = "furnace_charcoal",
+		name = "Charcoal",
+		category = "Materials",
+		requiredItems = {
+			{item = "Wood", amount = 2},
+		},
+		outputItem = {item = "Charcoal", amount = 1},
+		station = "Furnace",
+	},
+
+	-- Saw recipes
+	{
+		id = "plank",
+		name = "Wooden Plank",
+		category = "Building",
+		requiredItems = {
+			{item = "Wood Log", amount = 1},
+		},
+		outputItem = {item = "Wooden Plank", amount = 2},
+		station = "Saw",
+	},
+	{
+		id = "reinforced_wall",
+		name = "Reinforced Wall",
+		category = "Building",
+		requiredItems = {
+			{item = "Wooden Plank", amount = 4},
+			{item = "Scrap Metal", amount = 2},
+		},
+		outputItem = {item = "Reinforced Wall", amount = 1},
+		station = "Workbench",
+	},
 }
 
 function RecipeDatabase:GetByCategory(category)
