@@ -85,10 +85,11 @@ local function updateWorkstationPrompts()
 	
 	-- Show/hide prompts for all workstations
 	for _, workstation in ipairs(workstationsFolder:GetChildren()) do
-		-- Find BillboardGui in the workstation
+		-- Find BillboardGui in the workstation (LootItemBillboardGui)
 		local billboard = nil
 		for _, descendant in ipairs(workstation:GetDescendants()) do
-			if descendant:IsA("BillboardGui") and descendant.Name == "InteractionPrompt" then
+			if descendant:IsA("BillboardGui") and 
+			   (descendant.Name == "LootItemBillboardGui" or descendant.Name == "InteractionPrompt") then
 				billboard = descendant
 				break
 			end
