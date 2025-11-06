@@ -96,19 +96,20 @@ local function setupWorkstation(workstation)
 	-- Update the text fields to show workstation information
 	local frame = billboard:FindFirstChild("Frame")
 	if frame then
-		-- Set the Desc label (instruction text)
+		-- Set the Desc label (instruction text) if it exists
 		local descLabel = frame:FindFirstChild("Desc")
 		if descLabel and descLabel:IsA("TextLabel") then
 			descLabel.Text = "Press [E] to Use"
 		end
 		
-		-- Set the StringName label (workstation name)
+		-- Set the StringName label (workstation name) - this is the primary field
 		local nameLabel = frame:FindFirstChild("StringName")
 		if nameLabel and nameLabel:IsA("TextLabel") then
 			nameLabel.Text = workstation.Name
 		end
 		
-		-- Also check for "Name" label for compatibility with existing template
+		-- Also check for "Name" label for compatibility with LootItemBillboardGui template from ReplicatedStorage
+		-- (The fallback template uses StringName, but the actual template may use Name)
 		local altNameLabel = frame:FindFirstChild("Name")
 		if altNameLabel and altNameLabel:IsA("TextLabel") then
 			altNameLabel.Text = workstation.Name

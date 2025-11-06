@@ -284,9 +284,9 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		end
 	elseif input.KeyCode == Enum.KeyCode.E then
 		-- Close the crafting GUI if it's open
+		-- The PropertyChangedSignal handler will manage mouse visibility and cleanup
 		if background.Visible then
 			background.Visible = false
-			SetMouseVisible(false)
 		end
 	end
 end)
