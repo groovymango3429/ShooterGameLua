@@ -30,10 +30,27 @@ function CraftingSystem.CanCraft(player, recipe)
 		end
 	end
 
-	-- Station check (optional)
+	-- Station check
 	if recipe.station and recipe.station ~= "None" then
-		-- Example: check CollectionService tag near player
-		-- Add logic here
+		local char = player.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then
+			return false, {"Not in game"}
+		end
+		
+		local hrp = char.HumanoidRootPart
+		local nearbyStation = workspace:FindFirstChild("Workstations") and workspace.Workstations:FindFirstChild(recipe.station)
+		
+		if not nearbyStation then
+			table.insert(missing, "Station: " .. recipe.station .. " not found")
+		elseif nearbyStation:FindFirstChild("PrimaryPart") or nearbyStation:IsA("BasePart") then
+			local stationPos = nearbyStation:IsA("BasePart") and nearbyStation.Position or nearbyStation.PrimaryPart.Position
+			local distance = (hrp.Position - stationPos).Magnitude
+			if distance > 10 then
+				table.insert(missing, "Too far from " .. recipe.station)
+			end
+		else
+			table.insert(missing, "Invalid " .. recipe.station .. " setup")
+		end
 	end
 
 	return #missing == 0, missing
