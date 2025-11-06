@@ -15,6 +15,11 @@ local MAX_DISTANCE = 10
 local Events = ReplicatedStorage:WaitForChild("Events")
 local OpenCraftingMenuEvent = Events:WaitForChild("OpenCraftingMenu")
 
+-- Get reference to crafting GUI to check if it's open
+local playerGui = player:WaitForChild("PlayerGui")
+local craftingGui = playerGui:WaitForChild("CraftingTab")
+local craftingBackground = craftingGui:WaitForChild("Background")
+
 -- Get workstations folder
 local workstationsFolder = Workspace:FindFirstChild("Workstations")
 
@@ -104,6 +109,9 @@ end
 -- Handle interaction key press
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed or input.KeyCode ~= INTERACTION_KEY then return end
+	
+	-- Don't open workstation menu if crafting GUI is already open
+	if craftingBackground.Visible then return end
 	
 	if currentWorkstation then
 		-- Fire event to open crafting menu for this workstation

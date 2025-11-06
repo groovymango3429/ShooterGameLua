@@ -105,7 +105,9 @@ function ShowRecipesByCategory(category)
 		local filteredRecipes = {}
 		for _, recipe in ipairs(recipes) do
 			local recipeStation = recipe.station or "None"
-			if recipeStation == currentStation or recipeStation == "None" then
+			-- Only show recipes that match the current station
+			-- Exception: Workbench can show "None" recipes as it's a general crafting table
+			if recipeStation == currentStation or (currentStation == "Workbench" and recipeStation == "None") then
 				table.insert(filteredRecipes, recipe)
 			end
 		end
