@@ -107,9 +107,7 @@ function ShowRecipesByCategory(category)
 			local recipeStation = recipe.station or "None"
 			-- Only show recipes that match the current station
 			-- Exception: Workbench can show "None" recipes as it's a general crafting table
-			if recipeStation == currentStation then
-				table.insert(filteredRecipes, recipe)
-			elseif currentStation == "Workbench" and recipeStation == "None" then
+			if recipeStation == currentStation or (currentStation == "Workbench" and recipeStation == "None") then
 				table.insert(filteredRecipes, recipe)
 			end
 		end
