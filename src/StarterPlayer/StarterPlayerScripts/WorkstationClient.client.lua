@@ -110,7 +110,14 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
--- Update prompts continuously
-game:GetService("RunService").Heartbeat:Connect(function()
-	updateWorkstationPrompts()
+-- Update prompts at a throttled rate (10 times per second)
+local updateInterval = 0.1
+local timeSinceLastUpdate = 0
+
+game:GetService("RunService").Heartbeat:Connect(function(deltaTime)
+	timeSinceLastUpdate = timeSinceLastUpdate + deltaTime
+	if timeSinceLastUpdate >= updateInterval then
+		updateWorkstationPrompts()
+		timeSinceLastUpdate = 0
+	end
 end)

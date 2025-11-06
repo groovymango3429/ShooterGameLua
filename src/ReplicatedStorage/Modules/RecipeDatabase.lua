@@ -979,6 +979,8 @@ RecipeDatabase.AllRecipes = {
 		outputItem = {item = "Wooden Plank", amount = 2},
 		station = "Saw",
 	},
+
+	-- Additional Workbench recipes (using materials from Saw)
 	{
 		id = "reinforced_wall",
 		name = "Reinforced Wall",
