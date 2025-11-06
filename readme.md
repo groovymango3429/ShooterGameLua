@@ -1,4 +1,4 @@
-# ☣️ 4 Days Left -
+# 4 Days Left -
 **4 Days Left** is a survival adventure game set in a post-apocalyptic world overrun by the infected. You begin stranded on a central island, safe for now, but surrounded by smaller islands full of loot—and danger. During the day, players can travel to these surrounding islands to scavenge weapons, tools, and resources. But when night falls, deadly zombies emerge, and those left outside must fight to survive.
 
 Every 4 days, a massive **zombie horde** attacks the player’s base, forcing players to fortify their structures, build traps, and craft weapons to defend their home.
