@@ -64,6 +64,13 @@ function TreeManager.GiveWoodToPlayer(player, amount)
 	local woodSample = SS.AllItems:FindFirstChild("Wood Plank")
 	
 	if not woodSample then
+		-- Try alternative names
+		woodSample = SS.AllItems:FindFirstChild("Plank") 
+		or SS.AllItems:FindFirstChild("Wooden Plank")
+		or SS.AllItems:FindFirstChild("Wood")
+	end
+	
+	if not woodSample then
 		warn("Wood Plank item not found in ServerStorage.AllItems")
 		return
 	end

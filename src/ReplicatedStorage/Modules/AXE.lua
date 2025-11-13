@@ -17,6 +17,16 @@ local Settings = {
 	aimSmooth = .15,
 	range = 7,
 	
+	-- Tree cutting properties
+	canCutTrees = true,
+	treeDamage = 20,
+	chopSound = game.ReplicatedStorage.Sounds.AXE.Attack,
+	
+	-- Durability properties
+	hasDurability = true,
+	maxDurability = 150,
+	durabilityLossPerHit = 1,
+	
 	--99549317787451
 }
 return Settings
