@@ -48,7 +48,7 @@ function TreeManager.DamageTree(tree, damage, player)
 	if treeData.health <= 0 then
 		-- Tree is destroyed, give wood to player
 		TreeManager.GiveWoodToPlayer(player, treeData.woodAmount)
-		TreeManager.RespawnTree(tree)
+		TreeManager.FellTree(tree)
 		return true
 	end
 	
@@ -84,24 +84,89 @@ function TreeManager.GiveWoodToPlayer(player, amount)
 	end
 end
 
--- Respawn tree after it's cut down
-function TreeManager.RespawnTree(tree)
+-- Make tree fall with physics
+function TreeManager.FellTree(tree)
 	if not tree then return end
 	
-	-- Store original properties
+	-- Store original properties for respawning
 	local originalPosition = tree:GetPrimaryPartCFrame()
 	local treeName = tree.Name
 	
-	-- Remove tree
-	tree:Destroy()
+	-- Find trunk and foliage parts
+	local trunk = tree:FindFirstChild("Trunk") or tree.PrimaryPart
+	local foliage = tree:FindFirstChild("Foliage") or tree:FindFirstChild("Leaves")
+	
+	-- Play tree fall sound
+	local fallSound = ReplicatedStorage:FindFirstChild("Sounds")
+	if fallSound then
+		fallSound = fallSound:FindFirstChild("TreeFall")
+		if fallSound and fallSound:IsA("Sound") then
+			local soundClone = fallSound:Clone()
+			soundClone.Parent = trunk or tree.PrimaryPart
+			soundClone:Play()
+			game:GetService("Debris"):AddItem(soundClone, soundClone.TimeLength)
+		end
+	end
+	
+	-- Make foliage disappear
+	if foliage then
+		-- Fade out foliage
+		task.spawn(function()
+			local descendants = foliage:GetDescendants()
+			local transparentParts = {}
+			for _, obj in ipairs(descendants) do
+				if obj:IsA("BasePart") then
+					table.insert(transparentParts, obj)
+				end
+			end
+			
+			for i = 0, 1, 0.1 do
+				for _, part in ipairs(transparentParts) do
+					part.Transparency = i
+				end
+				task.wait(0.05)
+			end
+			foliage:Destroy()
+		end)
+	end
+	
+	-- Make trunk fall with physics
+	if trunk and trunk:IsA("BasePart") then
+		trunk.Anchored = false
+		trunk.CanCollide = true
+		
+		-- Apply force to make it fall
+		local direction = Vector3.new(math.random(-1, 1), 0, math.random(-1, 1)).Unit
+		local force = Instance.new("BodyForce")
+		force.Force = direction * trunk:GetMass() * 50 + Vector3.new(0, -trunk:GetMass() * 100, 0)
+		force.Parent = trunk
+		
+		-- Apply angular velocity for rotation as it falls
+		local angularVelocity = Instance.new("BodyAngularVelocity")
+		angularVelocity.AngularVelocity = Vector3.new(math.random(-2, 2), 0, math.random(-2, 2))
+		angularVelocity.MaxTorque = Vector3.new(4000, 0, 4000)
+		angularVelocity.Parent = trunk
+		
+		-- Clean up physics forces after trunk falls
+		task.delay(2, function()
+			if force and force.Parent then force:Destroy() end
+			if angularVelocity and angularVelocity.Parent then angularVelocity:Destroy() end
+		end)
+	end
+	
+	-- Remove tree data
 	TreeManager.TreeData[tree] = nil
 	
-	-- Respawn after delay
+	-- Respawn tree after delay
 	task.spawn(function()
-		task.wait(60) -- 60 seconds respawn time
+		task.wait(3) -- Wait for falling animation
+		if tree and tree.Parent then
+			tree:Destroy()
+		end
 		
-		-- Create new tree at same location (simplified)
-		-- In a real implementation, you'd clone from a template
+		task.wait(57) -- Total 60 seconds respawn time
+		
+		-- Create new tree at same location
 		local newTree = game:GetService("ServerStorage"):FindFirstChild("TreeTemplates")
 		if newTree then
 			newTree = newTree:FindFirstChild(treeName)

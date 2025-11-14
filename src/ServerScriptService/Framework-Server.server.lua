@@ -161,10 +161,8 @@ ReplicatedStorage.Events.MeleeAttack.OnServerEvent:Connect(function(player, orig
 				local treeDamage = config.treeDamage or config.damage
 				local treeDestroyed = TreeManager.DamageTree(tree, treeDamage, player)
 				
-				-- Play chop sound
-				if config.chopSound then
-					ReplicatedStorage.Events.PlayHitSound:FireClient(player, weaponName)
-				end
+				-- Play wood chop sound (separate from zombie hit sound)
+				ReplicatedStorage.Events.PlayTreeHitSound:FireClient(player, weaponName)
 				
 				-- Show feedback
 				ReplicatedStorage.Events.ShowHitmarker:FireClient(player)
