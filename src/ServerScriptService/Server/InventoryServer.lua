@@ -42,6 +42,31 @@ InventoryServer.MaxStackData = {
 
 InventoryServer.MaxStacks = 10
 
+-- Utility: detect whether a tool is (or is a descendant of) a character model
+local function IsToolInsideCharacter(tool: Tool)
+	local anc = tool.Parent
+	while anc do
+		if anc:IsA("Model") and anc:FindFirstChildOfClass("Humanoid") then
+			return true
+		end
+		anc = anc.Parent
+	end
+	return false
+end
+
+-- Utility: clean up visual/prompt children from a handle
+local function CleanupHandleVisuals(handle: BasePart)
+	for _, child in ipairs(handle:GetChildren()) do
+		if child:IsA("ProximityPrompt") then
+			child:Destroy()
+		end
+	end
+	local gui = handle:FindFirstChild("LootItemBillboardGui")
+	if gui then
+		gui:Destroy()
+	end
+end
+
 function InventoryServer.Start()
 	for i, player: Player in Players:GetPlayers() do
 		task.spawn(InventoryServer.OnPlayerAdded, player)
@@ -119,7 +144,7 @@ function InventoryServer.OnPlayerAdded(player:Player)
 		player.Backpack.ChildRemoved:Connect(function(child: Instance)
 			InventoryServer.UnregisterItem(player, child)
 		end)
-		
+
 		-- Apply armor stats when character spawns
 		local hum: Humanoid = char:WaitForChild("Humanoid")
 		-- Wait for character to fully load before applying stats
@@ -128,7 +153,7 @@ function InventoryServer.OnPlayerAdded(player:Player)
 			task.wait(0.1) -- Small delay for character initialization
 			InventoryServer.UpdateArmorStats(player)
 		end)
-		
+
 		hum.Died:Connect(function()
 			InventoryServer.Respawning[player] = true 
 			InventoryServer.UnholdItems(player)
@@ -177,7 +202,20 @@ function InventoryServer.UpdateDroppedItems()
 		local handle = tool:FindFirstChild("Handle")
 		if not handle then continue end
 
-		-- Remove any old ProximityPrompt
+		-- If the tool is inside a character (or attached to one), make sure it's NOT anchored.
+		-- Anchoring handles that are parented to characters causes the repeated teleport/push issue.
+		if IsToolInsideCharacter(tool) then
+			-- Ensure physics are normal while inside a character
+			handle.Anchored = false
+			handle.CanCollide = false
+			-- Remove any dropped-world visuals so they don't show on-equipped tools
+			CleanupHandleVisuals(handle)
+			continue
+		end
+
+		-- Tool is in world (not inside a character), treat it as a dropped item.
+
+		-- Remove any old ProximityPrompt (we'll only add prompts when we want to)
 		for _, child in ipairs(handle:GetChildren()) do
 			if child:IsA("ProximityPrompt") then
 				child:Destroy()
@@ -197,7 +235,7 @@ function InventoryServer.UpdateDroppedItems()
 			end
 		end
 
-		-- Set physical properties
+		-- Set physical properties for dropped item (anchored so it stays put)
 		handle.Anchored = true
 		handle.CanCollide = false
 	end
@@ -215,8 +253,10 @@ CustomLootPickup.OnServerEvent:Connect(function(player, tool)
 	if (handle.Position - hrp.Position).Magnitude > 10 then return end
 	-- Optionally, check inventory space here with InventoryServer.CheckInventoryFull
 	tool.Parent = player.Backpack
-	local gui = handle:FindFirstChild("LootItemBillboardGui")
-	if gui then gui:Destroy() end
+	-- Remove billboard/prompt visuals and ensure handle isn't anchored inside backpack
+	CleanupHandleVisuals(handle)
+	handle.Anchored = false
+	handle.CanCollide = false
 end)
 -- Sends the updated money value to the client
 function InventoryServer.UpdateMoneyClient(player: Player)
@@ -251,17 +291,26 @@ end
 function InventoryServer.RegisterItem(player: Player, tool: Tool)
 	if tool.ClassName ~= "Tool" then return end
 	if InventoryServer.Respawning[player] then return end
-	
+
+	-- Ensure handle isn't anchored (prevents stuck/teleport issues when tool is moved into character/backpack)
+	local handle = tool:FindFirstChild("Handle")
+	if handle then
+		handle.Anchored = false
+		handle.CanCollide = false
+		-- Remove any dropped-world visuals in case the tool was previously dropped
+		CleanupHandleVisuals(handle)
+	end
+
 	--Getting Inventory Data
 	local inv: Types.Inventory = InventoryServer.AllInventories[player]
-	
+
 	--Checking if already in inventory
 	for i, stackData: Types.StackData in inv.Inventory do
 		if table.find(stackData.Items, tool) then
 			return
 		end
 	end
-	
+
 	--Looping all stacks
 	local foundStack: Types.StackData = nil
 	for i, stackData: Types.Stackdata in inv.Inventory do
@@ -276,7 +325,7 @@ function InventoryServer.RegisterItem(player: Player, tool: Tool)
 		if #inv.Inventory < InventoryServer.MaxStacks then
 			-- Initialize durability for new tools
 			InventoryServer.InitializeToolDurability(tool)
-			
+
 			--Create new stack
 			local stack: Types.StackData = {
 				Name = tool.Name;
@@ -286,11 +335,11 @@ function InventoryServer.RegisterItem(player: Player, tool: Tool)
 				IsDroppable = tool:GetAttribute("IsDroppable");
 				Items = {tool};
 				StackId = inv.NextStackId;
-				
+
 			}
 			inv.NextStackId += 1
 			table.insert(inv.Inventory, stack)
-			
+
 			--Equipping to first open slot
 			if stack.ItemType == "Armor" then
 				local armorType =stack.Items[1]:GetAttribute("ArmorType")
@@ -309,10 +358,10 @@ function InventoryServer.RegisterItem(player: Player, tool: Tool)
 			warn("Items were added to Inventory, even though it's full, they wont be displayed in gui")
 		end
 	end
-	
+
 	--Updating Client
 	Signal.FireClient(player,"InventoryClient:Update", inv)
-	
+
 end
 
 --Unregistering items
@@ -320,18 +369,18 @@ function InventoryServer.UnregisterItem(player: Player, tool: Tool)
 	if tool.ClassName ~= "Tool" then return end
 	if tool.Parent == player.Backpack or (player.Character ~= nil and tool.parent == player.Character) then return end
 	if InventoryServer.Respawning[player] then return end
-	
+
 	--Getting Inventory
 	local inv: Types.Inventory = InventoryServer.AllInventories[player]
-	
+
 	--Finding tool in inventory
 	for i, stackData: Types.StackData in inv.Inventory do
 		local found: number = table.find(stackData.Items, tool)
 		if found then
-			
+
 			--Removing Tool
 			table.remove(stackData.Items, found)
-			
+
 			--Removing stack if it's empty
 			if #stackData.Items == 0 then
 				local stackFound: number = table.find(inv.Inventory, stackData)
@@ -383,20 +432,20 @@ function InventoryServer.EquipToHotbar(player: Player, equipTo: number, stackId:
 	local inv: Types.Inventory = InventoryServer.AllInventories[player]
 	---Removing is it exists already
 	InventoryServer.UnequipFromHotbar(player, stackId)
-	
+
 	--Validating Stack
 	local isValid: boolean = false
 	for i, stackData: Types.StackData in inv.Inventory do
 		if stackData.StackId == stackId and stackData.ItemType ~= "Armor" then
 			isValid = true
-			
+
 		end
 	end
 	if isValid == false then return end
-	
+
 	--equipping
 	inv.Hotbar["Slot" .. equipTo] = stackId
-	
+
 
 	--Updating Client
 	Signal.FireClient(player, "InventoryClient:Update", inv)
@@ -405,9 +454,9 @@ end
 --unequipping item from hotbar
 function InventoryServer.UnequipFromHotbar(player: Player, stackId: number)
 	if InventoryServer.Respawning[player] then return end
---getting inv
+	--getting inv
 	local inv = InventoryServer.AllInventories[player]
-	
+
 	--removing if exists already
 	for slotKey: string, equippedId: number in inv.Hotbar do
 		if equippedId == stackId then
@@ -422,40 +471,40 @@ end
 --Equipping Armor
 function InventoryServer.EquipArmor(player: Player, stackId: number): boolean?
 	if InventoryServer.Respawning[player] then return end
-	
+
 	--Finding Stack
 	local inv: Types.Inventory = InventoryServer.AllInventories[player]
 	local stackData: Types.StackData = InventoryServer.FindStackDataFromId(player, stackId)
 	if not stackData then return end
 	if stackData.ItemType ~= "Armor" then return end
-	
+
 	--Character Variables
 	local char = player.Character; if not char then return end
-	
+
 	--Equipping to armor data
 	local armorType = stackData.Items[1]:GetAttribute("ArmorType"); if not armorType then return end
 	inv.Armor[armorType] = stackId
-	
+
 	--Clearing armor
 	InventoryServer.ClearArmor(player, armorType)
-	
+
 	--Equipping armor model
 	local tag = ARMOR_TAG:format(player.UserId, armorType)
 	local armorModel: Model = SS.ArmorModels:FindFirstChild(stackData.Name)
-	
+
 	if armorModel then
-		
+
 		--Cloning
 		local clone = armorModel:Clone(); clone:AddTag(tag)
 		clone.Parent = char
-		
+
 		--Welding
 		for i, partModel: Model in clone:GetChildren() do
 			local bodyPart: BasePart = char:FindFirstChild(partModel.Name)
 			if bodyPart and partModel.PrimaryPart then
 				-- Position the armor part at the body part location first
 				partModel.PrimaryPart.CFrame = bodyPart.CFrame
-				
+
 				-- Create weld with proper CFrame offsets to prevent teleportation
 				local weld = Instance.new("Weld")
 				weld.Parent = bodyPart
@@ -468,27 +517,27 @@ function InventoryServer.EquipArmor(player: Player, stackId: number): boolean?
 			else
 				warn(`The armor model {clone.Name} has body part model {partModel.Name}, but no body part was found by that name.`)
 			end
-			
+
 		end
 	end
 	--Updating
 	Signal.FireClient(player, "InventoryClient:Update", inv)
 	InventoryServer.UpdateArmorStats(player)
 	return true --successful equip
-	
+
 end
 
 --Unequipping Armor
 function InventoryServer.UnequipArmor(player: Player, stackId: number)
 	if InventoryServer.Respawning[player] then return end
-	
+
 	--unequipping
 	local inv: Types.Inventory = InventoryServer.AllInventories[player]
 	for armorType, otherStackId in inv.Armor do
 		if stackId == otherStackId then
 			inv.Armor[armorType] = nil
 			InventoryServer.ClearArmor(player,armorType)
-			
+
 		end
 	end
 	--Updating
@@ -503,42 +552,42 @@ function InventoryServer.UpdateArmorStats(player: Player)
 	local totalHealthBuff: number = 0
 	local totalDefenseBuff: number = 0
 	local totalSpeedBuff: number = 0
-	
+
 	for armorType: string, stackId: number in inv.Armor do
 		--finding armor stack
 		if stackId == nil then continue end
 		local stackData: Types.StackData = InventoryServer.FindStackDataFromId(player, stackId)
 		if not stackData then continue end
-		
+
 		--checking and adding buffs
 		local healthBuff = stackData.Items[1]:GetAttribute("HealthBuff")
 		if healthBuff ~= nil then
 			totalHealthBuff += healthBuff
 		end
-		
+
 		local defenseBuff = stackData.Items[1]:GetAttribute("DefenseBuff")
 		if defenseBuff ~= nil then
 			totalDefenseBuff += defenseBuff
 		end
-		
+
 		local speedBuff = stackData.Items[1]:GetAttribute("SpeedBuff")
 		if speedBuff ~= nil then
 			totalSpeedBuff += speedBuff
 		end
 	end
-	
+
 	--Character variables
 	local char = player.Character; if not char then return end
 	local hum = char:FindFirstChild("Humanoid"); if not hum then return end
-	
+
 	--Adding health buffs
 	local currentHealthPerc = hum.Health / hum.MaxHealth
 	hum.MaxHealth = 100 + totalHealthBuff
 	hum.Health = hum.MaxHealth * currentHealthPerc
-	
+
 	--Adding speed buffs
 	hum.WalkSpeed = 16 + totalSpeedBuff -- 16 is default Roblox walk speed
-	
+
 	--Store defense buff as attribute for damage calculations
 	player:SetAttribute("DefenseBonus", totalDefenseBuff)
 end
@@ -554,7 +603,7 @@ end
 --Getting inventory data
 function InventoryServer.GetInventoryData(player: Player)
 	--Waiting for inv
-	
+
 	while not InventoryServer.AllInventories[player] do task.wait() end
 	return InventoryServer.AllInventories[player]
 end
@@ -572,21 +621,30 @@ end
 --dropping items
 function InventoryServer.DropItem(player: Player, stackId: number)
 	if InventoryServer.Respawning[player] then return end
-	
+
 	--finding stack data
 	local stackData: Types.StackData = InventoryServer.FindStackDataFromId(player, stackId)
 	if not stackData then return end
 	if not stackData.IsDroppable then return false end
-	
+
 	--Character Variables
 	local char: Model = player.Character; if not char then return end
 	local root: BasePart = char:FindFirstChild("HumanoidRootPart"); if not root then return end
-	
+
 	--Dropping first item in list
 	local toolToDrop = stackData.Items[1]
-	
+
 	toolToDrop:PivotTo(root.CFrame * CFrame.new(0,0,-3)) --3 studs in front of player
 	toolToDrop.Parent = workspace
+
+	-- Ensure its handle is cleaned (UpdateDroppedItems will add visuals/anchor next tick)
+	local handle = toolToDrop:FindFirstChild("Handle")
+	if handle then
+		CleanupHandleVisuals(handle)
+		handle.Anchored = false -- let UpdateDroppedItems anchor it intentionally
+		handle.CanCollide = false
+	end
+
 	return true
 end
 
@@ -602,19 +660,27 @@ function InventoryServer.HoldItem(player: Player, slotNum: number)
 			break
 		end
 	end
-	
+
 	--Equipping
 	InventoryServer.UnholdItems(player)
 	if stackData ~= nil then 
-		
+
 		--Equipping first tool in stack
 		local tool: Tool = stackData.Items[1]
 		if not player.Character then return end
 		tool.Parent = player.Character
 
+		-- Make sure the tool handle isn't anchored and visuals are removed when equipped
+		local handle = tool:FindFirstChild("Handle")
+		if handle then
+			CleanupHandleVisuals(handle)
+			handle.Anchored = false
+			handle.CanCollide = false
+		end
+
 		--Updating Client
 		Signal.FireClient(player, "InventoryClient:Update", inv)
-		
+
 	end
 end
 
@@ -625,7 +691,7 @@ function InventoryServer.UnholdItems(player: Players)
 	local char: Model = player.Character; if not char then return end 
 	local hum: Humanoid = char:FindFirstChild("Humanoid"); if not hum then return end
 	hum:UnequipTools()
-	
+
 	--Update client
 	Signal.FireClient(player, "InventoryClient:Update", InventoryServer.AllInventories[player])
 end
@@ -642,7 +708,7 @@ function InventoryServer.SaveData(player: Player)
 		NextStackId = inv.NextStackId;
 		Money = inv.Money or 0;
 	}
-	
+
 	for i, stackData in inv.Inventory do
 		table.insert(modifiedInv.Inventory,  {
 			Name = stackData.Name;
@@ -651,21 +717,21 @@ function InventoryServer.SaveData(player: Player)
 		})
 	end
 	print(modifiedInv)
-	
+
 	local saveString = HS:JSONEncode(modifiedInv)
-	
+
 	--saving
 	local success, result = false, nil
 	local timeoutTime = 5
 	local startTime = os.clock()
-	
+
 	while not success do 
 		--timeout checking
 		if os.clock() - startTime > timeoutTime then
 			print("[Inventory] Unable to save the data of " .. player.Name .. "-" .. player.UserId)
 			return
 		end
-		
+
 		--attempting save
 		task.wait()
 		success, result = pcall(function()
@@ -680,8 +746,8 @@ end
 
 function InventoryServer.LoadData(player: Player)
 	print("[Inventory] Loading the data of " .. player.Name .. "-" .. player.UserId)
-	
-	
+
+
 	--getting current data
 	local saveString = IDS:GetAsync(SAVE_KEY:format(player.UserId))	
 	if saveString == nil then
@@ -690,7 +756,7 @@ function InventoryServer.LoadData(player: Player)
 	end
 	local savedData = HS:JSONDecode(saveString)
 	print(savedData)
-	
+
 	--loading inventory
 	local inv: Types.Inventory = {
 		Inventory = {};
@@ -701,9 +767,9 @@ function InventoryServer.LoadData(player: Player)
 	}
 	local char: Model = player.Character or player.CharacterAdded:Wait()
 	local backpack: Backpack = player:WaitForChild("Backpack")
-	
+
 	for i, savedStack in savedData.Inventory do
-		
+
 		--finding sample items
 		local sample: Tool = SS.AllItems:FindFirstChild(savedStack.Name)
 		if not sample then
@@ -719,37 +785,37 @@ function InventoryServer.LoadData(player: Player)
 			IsDroppable = sample:GetAttribute("IsDroppable");
 			Items = {};
 			StackId = savedStack.StackId;
-			
+
 		}
-		
+
 		--cloning items
 		for i = 1, savedStack.Count do
 			local clone = sample:Clone()
 			clone.Parent = backpack
 			table.insert(stack.Items, clone)
 		end
-		
+
 		--inserting stack
 		table.insert(inv.Inventory, stack)
-		
-		
-			
-	
+
+
+
+
 	end
 	InventoryServer.AllInventories[player] = inv
 	InventoryServer.HasLoaded[player] = true
 	InventoryServer.Janitors[player]:GiveChore(function()
-	InventoryServer.HasLoaded[player] = nil
+		InventoryServer.HasLoaded[player] = nil
 	end)
-	
+
 	--Adding armor Models
 	for armorType, stackId in inv.Armor do
 		InventoryServer.EquipArmor(player, stackId)
 	end
-	
+
 	--Updating client ui
 	Signal.FireServer(player, "InventoryClient:Update", InventoryServer.AllInventories[player])
-	
+
 	print("[Inventory] Finished loading the data of " .. player.Name .. "-" .. player.UserId)
 end
 
@@ -760,7 +826,7 @@ function InventoryServer.InitializeToolDurability(tool: Tool)
 		local RS = game:GetService("ReplicatedStorage")
 		local moduleName = tool.Name
 		local moduleObj = RS.Modules:FindFirstChild(moduleName)
-		
+
 		if moduleObj then
 			local success, config = pcall(require, moduleObj)
 			if success and config.hasDurability then
@@ -774,28 +840,28 @@ end
 function InventoryServer.ReduceDurability(player: Player, amount: number)
 	local char = player.Character
 	if not char then return end
-	
+
 	-- Find equipped tool
 	local tool = char:FindFirstChildOfClass("Tool")
 	if not tool then return end
-	
+
 	local durability = tool:GetAttribute("Durability")
 	local maxDurability = tool:GetAttribute("MaxDurability")
-	
+
 	if durability == nil or maxDurability == nil then
 		-- Initialize durability if not set
 		InventoryServer.InitializeToolDurability(tool)
 		durability = tool:GetAttribute("Durability")
 		maxDurability = tool:GetAttribute("MaxDurability")
 	end
-	
+
 	if durability and maxDurability then
 		durability = math.max(0, durability - amount)
 		tool:SetAttribute("Durability", durability)
-		
+
 		-- Notify client to update UI
 		Signal.FireClient(player, "InventoryClient:UpdateDurability", tool.Name, durability, maxDurability)
-		
+
 		-- Destroy tool if durability reaches 0
 		if durability <= 0 then
 			tool:Destroy()
@@ -807,24 +873,24 @@ end
 function InventoryServer.GetDurability(player: Player, toolName: string)
 	local inv = InventoryServer.AllInventories[player]
 	if not inv then return nil, nil end
-	
+
 	-- Find the tool in inventory
 	for i, stackData: Types.StackData in inv.Inventory do
 		if stackData.Name == toolName and #stackData.Items > 0 then
 			local tool = stackData.Items[1]
 			local durability = tool:GetAttribute("Durability")
 			local maxDurability = tool:GetAttribute("MaxDurability")
-			
+
 			if durability == nil or maxDurability == nil then
 				InventoryServer.InitializeToolDurability(tool)
 				durability = tool:GetAttribute("Durability")
 				maxDurability = tool:GetAttribute("MaxDurability")
 			end
-			
+
 			return durability, maxDurability
 		end
 	end
-	
+
 	return nil, nil
 end
 
