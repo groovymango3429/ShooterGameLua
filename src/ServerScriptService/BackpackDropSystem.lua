@@ -7,6 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local BackpackDropSystem = {}
 BackpackDropSystem.ActiveBackpacks = {}
+BackpackDropSystem.DefaultBackpackModel = nil
 
 -- Get player's inventory from InventoryServer
 local function getPlayerInventory(player)
@@ -14,33 +15,50 @@ local function getPlayerInventory(player)
 	return InventoryServer.AllInventories[player]
 end
 
--- Create backpack model on the ground
-function BackpackDropSystem.CreateBackpack(position, inventoryItems, ownerName)
+-- Create or get default backpack model
+local function getBackpackModel()
 	-- Try to find backpack model in ReplicatedStorage
 	local backpackModel = ReplicatedStorage:FindFirstChild("BackpackModel")
 	
-	if not backpackModel then
-		-- Create a simple backpack model if one doesn't exist
-		backpackModel = Instance.new("Model")
-		backpackModel.Name = "BackpackModel"
-		
-		local backpackPart = Instance.new("Part")
-		backpackPart.Name = "BackpackPart"
-		backpackPart.Size = Vector3.new(2, 2, 1)
-		backpackPart.BrickColor = BrickColor.new("Dark stone grey")
-		backpackPart.Anchored = true
-		backpackPart.CanCollide = true
-		backpackPart.Parent = backpackModel
-		
-		-- Add a decal or mesh here if desired
-		local mesh = Instance.new("SpecialMesh")
-		mesh.MeshType = Enum.MeshType.FileMesh
-		mesh.MeshId = "rbxassetid://430198390" -- Backpack mesh
-		mesh.Scale = Vector3.new(1.5, 1.5, 1.5)
-		mesh.Parent = backpackPart
-		
-		backpackModel.PrimaryPart = backpackPart
+	if backpackModel then
+		return backpackModel
 	end
+	
+	-- Use cached default model if available
+	if BackpackDropSystem.DefaultBackpackModel then
+		return BackpackDropSystem.DefaultBackpackModel
+	end
+	
+	-- Create a simple backpack model if one doesn't exist
+	backpackModel = Instance.new("Model")
+	backpackModel.Name = "BackpackModel"
+	
+	local backpackPart = Instance.new("Part")
+	backpackPart.Name = "BackpackPart"
+	backpackPart.Size = Vector3.new(2, 2, 1)
+	backpackPart.BrickColor = BrickColor.new("Dark stone grey")
+	backpackPart.Anchored = true
+	backpackPart.CanCollide = true
+	backpackPart.Parent = backpackModel
+	
+	-- Add a decal or mesh here if desired
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.FileMesh
+	mesh.MeshId = "rbxassetid://430198390" -- Backpack mesh
+	mesh.Scale = Vector3.new(1.5, 1.5, 1.5)
+	mesh.Parent = backpackPart
+	
+	backpackModel.PrimaryPart = backpackPart
+	
+	-- Cache the default model
+	BackpackDropSystem.DefaultBackpackModel = backpackModel
+	
+	return backpackModel
+end
+
+-- Create backpack model on the ground
+function BackpackDropSystem.CreateBackpack(position, inventoryItems, ownerName)
+	local backpackModel = getBackpackModel()
 	
 	local backpack = backpackModel:Clone()
 	backpack.Name = ownerName .. "'s Backpack"

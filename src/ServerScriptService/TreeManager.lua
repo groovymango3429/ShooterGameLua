@@ -88,6 +88,18 @@ end
 function TreeManager.FellTree(tree)
 	if not tree then return end
 	
+	-- Ensure tree has PrimaryPart set
+	if not tree.PrimaryPart then
+		warn("TreeManager: Tree", tree.Name, "has no PrimaryPart set. Cannot fell tree properly.")
+		-- Still try to clean up the tree
+		task.delay(3, function()
+			if tree and tree.Parent then
+				tree:Destroy()
+			end
+		end)
+		return
+	end
+	
 	-- Store original properties for respawning
 	local originalPosition = tree:GetPrimaryPartCFrame()
 	local treeName = tree.Name
