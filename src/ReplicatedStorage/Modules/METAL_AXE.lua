@@ -1,8 +1,8 @@
 local Settings = {
 	isMelee = true,
-	damage = 40,
-	headshot = 80,
-	attackAnim = "rbxassetid://77775942334485", -- Replace with your swing animation ID
+	damage = 45,
+	headshot = 90,
+	attackAnim = "rbxassetid://77775942334485",
 	attackSound = game.ReplicatedStorage.Sounds.AXE.Attack,
 	equipAnim = "rbxassetid://99549317787451",
 	equipSound = game.ReplicatedStorage.Sounds.AXE.Equip,
@@ -13,20 +13,18 @@ local Settings = {
 	canSemi = true,
 	canFullAuto = false,
 	fireMode = "Semi",
-	cooldown = 0.8,
+	cooldown = 0.7,
 	aimSmooth = .15,
 	range = 7,
 	
 	-- Tree cutting properties
 	canCutTrees = true,
-	treeDamage = 20,
+	treeDamage = 25,
 	chopSound = game.ReplicatedStorage.Sounds.AXE.Attack,
 	
 	-- Durability properties
 	hasDurability = true,
-	maxDurability = 150,
+	maxDurability = 200,
 	durabilityLossPerHit = 1,
-	
-	--99549317787451
 }
 return Settings

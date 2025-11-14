@@ -59,6 +59,8 @@ function InventoryServer.Start()
 	Signal.ListenRemote("InventoryServer:UnequipArmor", InventoryServer.UnequipArmor)
 	Signal.ListenRemote("InventoryServer:AddMoney", InventoryServer.AddMoney)
 	Signal.ListenRemote("InventoryServer:RemoveMoney", InventoryServer.RemoveMoney)
+	Signal.ListenRemote("InventoryServer:ReduceDurability", InventoryServer.ReduceDurability)
+	Signal.ListenRemote("InventoryServer:GetDurability", InventoryServer.GetDurability)
 	game:BindToClose(function()
 		for i, player: Player in Players:GetPlayers() do
 			InventoryServer.SaveData(player)
@@ -272,6 +274,9 @@ function InventoryServer.RegisterItem(player: Player, tool: Tool)
 	--if no stack was found
 	if not foundStack then
 		if #inv.Inventory < InventoryServer.MaxStacks then
+			-- Initialize durability for new tools
+			InventoryServer.InitializeToolDurability(tool)
+			
 			--Create new stack
 			local stack: Types.StackData = {
 				Name = tool.Name;
@@ -746,6 +751,81 @@ function InventoryServer.LoadData(player: Player)
 	Signal.FireServer(player, "InventoryClient:Update", InventoryServer.AllInventories[player])
 	
 	print("[Inventory] Finished loading the data of " .. player.Name .. "-" .. player.UserId)
+end
+
+-- Durability System Functions
+function InventoryServer.InitializeToolDurability(tool: Tool)
+	-- Initialize durability for tools that have it
+	if not tool:GetAttribute("Durability") then
+		local RS = game:GetService("ReplicatedStorage")
+		local moduleName = tool.Name
+		local moduleObj = RS.Modules:FindFirstChild(moduleName)
+		
+		if moduleObj then
+			local success, config = pcall(require, moduleObj)
+			if success and config.hasDurability then
+				tool:SetAttribute("Durability", config.maxDurability)
+				tool:SetAttribute("MaxDurability", config.maxDurability)
+			end
+		end
+	end
+end
+
+function InventoryServer.ReduceDurability(player: Player, amount: number)
+	local char = player.Character
+	if not char then return end
+	
+	-- Find equipped tool
+	local tool = char:FindFirstChildOfClass("Tool")
+	if not tool then return end
+	
+	local durability = tool:GetAttribute("Durability")
+	local maxDurability = tool:GetAttribute("MaxDurability")
+	
+	if durability == nil or maxDurability == nil then
+		-- Initialize durability if not set
+		InventoryServer.InitializeToolDurability(tool)
+		durability = tool:GetAttribute("Durability")
+		maxDurability = tool:GetAttribute("MaxDurability")
+	end
+	
+	if durability and maxDurability then
+		durability = math.max(0, durability - amount)
+		tool:SetAttribute("Durability", durability)
+		
+		-- Notify client to update UI
+		Signal.FireClient(player, "InventoryClient:UpdateDurability", tool.Name, durability, maxDurability)
+		
+		-- Destroy tool if durability reaches 0
+		if durability <= 0 then
+			tool:Destroy()
+			Signal.FireClient(player, "InventoryClient:ErrorMessage", "Your " .. tool.Name .. " broke!")
+		end
+	end
+end
+
+function InventoryServer.GetDurability(player: Player, toolName: string)
+	local inv = InventoryServer.AllInventories[player]
+	if not inv then return nil, nil end
+	
+	-- Find the tool in inventory
+	for i, stackData: Types.StackData in inv.Inventory do
+		if stackData.Name == toolName and #stackData.Items > 0 then
+			local tool = stackData.Items[1]
+			local durability = tool:GetAttribute("Durability")
+			local maxDurability = tool:GetAttribute("MaxDurability")
+			
+			if durability == nil or maxDurability == nil then
+				InventoryServer.InitializeToolDurability(tool)
+				durability = tool:GetAttribute("Durability")
+				maxDurability = tool:GetAttribute("MaxDurability")
+			end
+			
+			return durability, maxDurability
+		end
+	end
+	
+	return nil, nil
 end
 
 

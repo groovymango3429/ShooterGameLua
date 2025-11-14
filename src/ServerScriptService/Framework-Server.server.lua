@@ -1,10 +1,17 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
+
+local TreeManager = require(script.Parent.TreeManager)
+local InventoryServer = require(script.Parent.Server.InventoryServer)
 
 local WeaponModules = {
 	["TROY DEFENSE AR"] = require(ReplicatedStorage.Modules["TROY DEFENSE AR"]),
 	["G19 ROLAND SPECIAL"] = require(ReplicatedStorage.Modules["G19 ROLAND SPECIAL"]),
 	["AXE"] = require(ReplicatedStorage.Modules["AXE"]),
+	["WOOD_AXE"] = require(ReplicatedStorage.Modules["WOOD_AXE"]),
+	["METAL_AXE"] = require(ReplicatedStorage.Modules["METAL_AXE"]),
+	["CHAINSAW"] = require(ReplicatedStorage.Modules["CHAINSAW"]),
 }
 
 local PlayerWeaponState = {}
@@ -135,6 +142,52 @@ ReplicatedStorage.Events.MeleeAttack.OnServerEvent:Connect(function(player, orig
 
 	if result and result.Instance then
 		print("Axe hit part", result.Instance:GetFullName())
+		
+		-- Check if hit a tree first (if tool can cut trees)
+		if config.canCutTrees then
+			local hitInstance = result.Instance
+			local tree = nil
+			local searchLimit = 8
+			for i = 1, searchLimit do
+				if not hitInstance then break end
+				if hitInstance:IsA("Model") and CollectionService:HasTag(hitInstance, "Tree") then
+					tree = hitInstance
+					break
+				end
+				hitInstance = hitInstance.Parent
+			end
+			
+			if tree then
+				local treeDamage = config.treeDamage or config.damage
+				local treeDestroyed = TreeManager.DamageTree(tree, treeDamage, player)
+				
+				-- Play chop sound
+				if config.chopSound then
+					ReplicatedStorage.Events.PlayHitSound:FireClient(player, weaponName)
+				end
+				
+				-- Show feedback
+				ReplicatedStorage.Events.ShowHitmarker:FireClient(player)
+				
+				-- Handle durability loss for tree cutting
+				if config.hasDurability then
+					InventoryServer.ReduceDurability(player, config.durabilityLossPerHit or 1)
+				end
+				
+				-- Exit early - don't check for humanoid if we hit a tree
+				for _, otherPlayer in ipairs(Players:GetPlayers()) do
+					if otherPlayer ~= player then
+						ReplicatedStorage.Events.PlayGunSound:FireClient(
+							otherPlayer,
+							weaponName,
+							root.Position
+						)
+					end
+				end
+				return
+			end
+		end
+		
 		-- Walk up ancestry to find Humanoid and zombie tag
 		local hitInstance = result.Instance
 		local hum = nil
@@ -166,6 +219,11 @@ ReplicatedStorage.Events.MeleeAttack.OnServerEvent:Connect(function(player, orig
 			if isZombie then
 				-- Play hit sound for player who hit a zombie
 				ReplicatedStorage.Events.PlayHitSound:FireClient(player, weaponName)
+			end
+			
+			-- Handle durability loss for combat
+			if config.hasDurability then
+				InventoryServer.ReduceDurability(player, config.durabilityLossPerHit or 1)
 			end
 		else
 			print("No humanoid found in hit target.")
@@ -223,3 +281,6 @@ ReplicatedStorage.Events.CanShoot.OnServerInvoke = function(player)
 	if state.ammo <= 0 then return false end
 	return true
 end
+
+-- Initialize tree system
+TreeManager.InitializeTrees()
