@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
 
 local boat = script.Parent
 assert(boat and boat:IsA("Model"), "Script must be placed inside the boat model")
@@ -21,6 +22,15 @@ local CONFIG = {
 local hull = nil
 local seat = nil
 local currentDriver = nil
+local boatId = nil
+
+-- Initialize boat with unique ID
+if not boat:GetAttribute("BoatId") then
+	boatId = HttpService:GenerateGUID(false)
+	boat:SetAttribute("BoatId", boatId)
+else
+	boatId = boat:GetAttribute("BoatId")
+end
 
 -- RemoteEvent for client communication (create if missing)
 local boatSeatedEvent = ReplicatedStorage:FindFirstChild("BoatSeated")
@@ -114,8 +124,8 @@ if seat then
 					print("[BoatServer DEBUG] Set network owner to player for client-side physics")
 				end
 
-				-- Notify that player is seated. Send boat model so client knows which boat it is.
-				boatSeatedEvent:FireClient(player, true, boat)
+				-- Notify that player is seated. Send boat model and boatId so client knows which boat it is.
+				boatSeatedEvent:FireClient(player, true, boat, boatId)
 			end
 		else
 			-- occupant became nil

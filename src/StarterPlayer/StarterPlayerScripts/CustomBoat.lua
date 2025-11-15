@@ -88,9 +88,14 @@ local boatRequestSeatEvent = ReplicatedStorage:WaitForChild("BoatRequestSeat")
 
 -- State variables
 local currentBoat = nil
+local currentBoatId = nil
 local isSeated = false
 local throttle = 0
 local steer = 0
+
+-- Camera state
+local originalCameraType = nil
+local originalCameraMaxZoomDistance = nil
 
 -- Physics components for current boat
 local hull = nil
@@ -108,6 +113,59 @@ local keysDown = {}
 
 -- Debug timing
 local lastLandDebugTime = 0
+
+-- Function to switch to third person camera
+local function switchToThirdPerson()
+	local camera = Workspace.CurrentCamera
+	if not camera then return end
+	
+	-- Save original camera settings
+	originalCameraType = camera.CameraType
+	originalCameraMaxZoomDistance = player.CameraMaxZoomDistance
+	
+	-- Set to third person
+	camera.CameraType = Enum.CameraType.Custom
+	player.CameraMaxZoomDistance = 15
+	player.CameraMinZoomDistance = 5
+	
+	print("[BoatClient DEBUG] Switched to third person camera")
+end
+
+-- Function to switch back to first person
+local function switchToFirstPerson()
+	local camera = Workspace.CurrentCamera
+	if not camera then return end
+	
+	-- Restore original camera settings
+	if originalCameraType then
+		camera.CameraType = originalCameraType
+	end
+	if originalCameraMaxZoomDistance then
+		player.CameraMaxZoomDistance = originalCameraMaxZoomDistance
+	end
+	player.CameraMinZoomDistance = 0.5
+	
+	print("[BoatClient DEBUG] Switched back to first person camera")
+end
+
+-- Function to show/hide boat GUI
+local function setBoatGuiVisible(visible, boatId)
+	local playerGui = player:WaitForChild("PlayerGui")
+	local boatGui = playerGui:FindFirstChild("BoatGui")
+	
+	if boatGui then
+		boatGui.Enabled = visible
+		
+		-- Store boat ID for storage access
+		if visible and boatId then
+			boatGui:SetAttribute("CurrentBoatId", boatId)
+		end
+		
+		print("[BoatClient DEBUG] Boat GUI visibility set to:", visible)
+	else
+		warn("[BoatClient] BoatGui not found in PlayerGui")
+	end
+end
 
 -- Helper: Get water level at a position using terrain voxels
 local function getWaterLevelAt(position)
@@ -770,13 +828,20 @@ UserInputService.InputChanged:Connect(function(input, processed)
 end)
 
 -- Listen for seated status changes from server
-boatSeatedEvent.OnClientEvent:Connect(function(seated, boatModel)
-	print("[BoatClient DEBUG] Seated status changed:", seated, "Boat:", boatModel)
+boatSeatedEvent.OnClientEvent:Connect(function(seated, boatModel, boatId)
+	print("[BoatClient DEBUG] Seated status changed:", seated, "Boat:", boatModel, "BoatId:", boatId)
 	isSeated = seated
 
 	if seated then
 		-- Player just boarded
 		currentBoat = boatModel
+		currentBoatId = boatId
+
+		-- Switch to third person camera
+		switchToThirdPerson()
+		
+		-- Show boat GUI
+		setBoatGuiVisible(true, boatId)
 
 		-- Initialize client-side physics
 		if initializeBoatPhysics(boatModel) then
@@ -799,11 +864,18 @@ boatSeatedEvent.OnClientEvent:Connect(function(seated, boatModel)
 		end
 	else
 		-- Player left boat
+		-- Switch back to first person camera
+		switchToFirstPerson()
+		
+		-- Hide boat GUI
+		setBoatGuiVisible(false, nil)
+		
 		cleanupBoatPhysics()
 		throttle = 0
 		steer = 0
 		keysDown = {}
 		currentBoat = nil
+		currentBoatId = nil
 	end
 end)
 

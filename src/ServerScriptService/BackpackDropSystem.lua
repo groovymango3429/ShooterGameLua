@@ -122,12 +122,12 @@ function BackpackDropSystem.LootBackpack(player, backpack)
 	local transferredItems = {}
 	local remainingItems = {}
 	
-	-- Try to transfer items to player
+	-- Try to transfer items to player following inventory system rules
 	for _, item in ipairs(items) do
 		if item:IsA("Tool") then
 			-- Check if player's inventory has space
 			if not InventoryServer.CheckInventoryFull(player, item) then
-				-- Transfer to player's backpack
+				-- Transfer to player's backpack (RegisterItem will be called automatically via ChildAdded)
 				item.Parent = player.Backpack
 				table.insert(transferredItems, item)
 			else
@@ -186,7 +186,7 @@ function BackpackDropSystem.OnPlayerDeath(player)
 		local rootPart = char:FindFirstChild("HumanoidRootPart")
 		local position = rootPart and rootPart.Position or Vector3.new(0, 5, 0)
 		
-		-- Collect all inventory items
+		-- Collect all inventory items from both Backpack and Character
 		local inventoryItems = {}
 		
 		-- Get items from backpack
@@ -196,7 +196,7 @@ function BackpackDropSystem.OnPlayerDeath(player)
 			end
 		end
 		
-		-- Get equipped tools
+		-- Get equipped tools from character
 		for _, item in ipairs(char:GetChildren()) do
 			if item:IsA("Tool") then
 				table.insert(inventoryItems, item)
@@ -205,7 +205,17 @@ function BackpackDropSystem.OnPlayerDeath(player)
 		
 		-- Only create backpack if player has items
 		if #inventoryItems > 0 then
+			print("[BackpackDrop] Player died with " .. #inventoryItems .. " items, creating death bag")
 			BackpackDropSystem.CreateBackpack(position, inventoryItems, player.Name)
+			
+			-- Remove items from inventory system
+			local InventoryServer = require(script.Parent.Server.InventoryServer)
+			for _, item in ipairs(inventoryItems) do
+				-- Unregister from inventory (this will update the client)
+				InventoryServer.UnregisterItem(player, item)
+			end
+		else
+			print("[BackpackDrop] Player died with no items, not creating death bag")
 		end
 	end)
 end
