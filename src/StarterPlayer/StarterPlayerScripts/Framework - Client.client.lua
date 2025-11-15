@@ -99,7 +99,7 @@ game.ReplicatedStorage.Events.PlayTreeHitSound.OnClientEvent:Connect(function(we
 	if woodImpactSound then
 		woodImpactSound = woodImpactSound:FindFirstChild("WoodImpact")
 	end
-	
+
 	if woodImpactSound and woodImpactSound:IsA("Sound") then
 		local sound = woodImpactSound:Clone()
 		local char = player.Character
@@ -236,7 +236,8 @@ end)
 local function updateViewmodel()
 	if equippedTool and equippedTool:IsA("Tool") and equippedTool:GetAttribute("ItemType") == "Weapon" then
 		loadSlot(equippedTool.Name)
-		hud.Enabled = not (framework.module and framework.module.isMelee)
+		-- Show HUD for all weapons, including melee (METAL_AXE)
+		hud.Enabled = true
 		UpdateAmmoHUD()
 	else
 		for _, v in pairs(camera:GetChildren()) do
