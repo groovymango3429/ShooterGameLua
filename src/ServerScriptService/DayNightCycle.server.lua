@@ -114,10 +114,10 @@ print("[DayNight] Day starts at " .. DAY_START_HOUR .. ":00, Night starts at " .
 -- Main cycle loop
 task.spawn(function()
 	while true do
-		task.wait(1) -- Update every second
+		task.wait(5) -- Update every 5 seconds instead of 1 to reduce jittering
 		
 		-- Increment time
-		Lighting.ClockTime = Lighting.ClockTime + (MINUTES_PER_SECOND / 60)
+		Lighting.ClockTime = Lighting.ClockTime + (MINUTES_PER_SECOND * 5 / 60) -- Multiply by 5 since we wait 5 seconds
 		
 		-- Get current hour and period
 		local hour = getCurrentHour()
@@ -130,18 +130,18 @@ task.spawn(function()
 			print("[DayNight] Time changed to: " .. currentPeriod .. " (Hour: " .. string.format("%.1f", hour) .. ")")
 		end
 		
-		-- Apply lighting based on period
+		-- Apply lighting based on period with smoother lerp (reduced alpha for more gradual changes)
 		if currentPeriod == "Day" then
-			lerpLighting(DAY_SETTINGS, 0.05)
+			lerpLighting(DAY_SETTINGS, 0.02)
 			ZombieThreatValue.Value = 1
 		elseif currentPeriod == "Night" then
-			lerpLighting(NIGHT_SETTINGS, 0.05)
+			lerpLighting(NIGHT_SETTINGS, 0.02)
 			ZombieThreatValue.Value = 2 -- Zombies are twice as threatening at night
 		elseif currentPeriod == "Dusk" then
-			lerpLighting(DUSK_SETTINGS, 0.05)
+			lerpLighting(DUSK_SETTINGS, 0.02)
 			ZombieThreatValue.Value = 1.3
 		elseif currentPeriod == "Dawn" then
-			lerpLighting(DAWN_SETTINGS, 0.05)
+			lerpLighting(DAWN_SETTINGS, 0.02)
 			ZombieThreatValue.Value = 1.2
 		end
 	end
