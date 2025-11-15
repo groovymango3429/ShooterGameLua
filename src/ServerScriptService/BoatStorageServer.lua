@@ -48,13 +48,19 @@ Signal.ListenRemote("BoatStorage:Open", function(player, boatId)
 		}
 	end
 
-	Signal.FireClient(player, "BoatStorage:Open", boatId, BoatStorageData[boatId].Items, BoatStorageData[boatId].MaxStacks)
+	-- Use the regular Storage:Open signal so existing StorageClient can handle it
+	Signal.FireClient(player, "Storage:Open", boatId, BoatStorageData[boatId].Items, BoatStorageData[boatId].MaxStacks)
 end)
 
--- Deposit stack from inventory to boat storage
-Signal.ListenRemote("BoatStorage:Deposit", function(player, boatId, stackId)
-	local boat = getBoatById(boatId)
-	if not boat or not BoatStorageData[boatId] then
+-- Hook into Storage:Deposit to handle boat storage
+Signal.ListenRemote("Storage:Deposit", function(player, storageId, stackId)
+	-- Check if this is a boat storage
+	if not BoatStorageData[storageId] then
+		return -- Not a boat storage, regular storage server will handle it
+	end
+	
+	local boat = getBoatById(storageId)
+	if not boat then
 		return
 	end
 
@@ -73,22 +79,27 @@ Signal.ListenRemote("BoatStorage:Deposit", function(player, boatId, stackId)
 	if not stackIdx then return end
 
 	-- Check boat storage capacity
-	if #BoatStorageData[boatId].Items >= BoatStorageData[boatId].MaxStacks then
-		Signal.FireClient(player, "BoatStorage:Error", "Boat storage is full!")
+	if #BoatStorageData[storageId].Items >= BoatStorageData[storageId].MaxStacks then
+		Signal.FireClient(player, "Storage:Error", "Boat storage is full!")
 		return
 	end
 
-	table.insert(BoatStorageData[boatId].Items, stackData)
+	table.insert(BoatStorageData[storageId].Items, stackData)
 	table.remove(inv.Inventory, stackIdx)
 
-	Signal.FireClient(player, "BoatStorage:Update", boatId, BoatStorageData[boatId].Items, BoatStorageData[boatId].MaxStacks)
+	Signal.FireClient(player, "Storage:Update", storageId, BoatStorageData[storageId].Items, BoatStorageData[storageId].MaxStacks)
 	Signal.FireClient(player, "InventoryClient:Update", inv)
 end)
 
--- Withdraw stack from boat storage to inventory
-Signal.ListenRemote("BoatStorage:Withdraw", function(player, boatId, stackId)
-	local boat = getBoatById(boatId)
-	if not boat or not BoatStorageData[boatId] then
+-- Hook into Storage:Withdraw to handle boat storage
+Signal.ListenRemote("Storage:Withdraw", function(player, storageId, stackId)
+	-- Check if this is a boat storage
+	if not BoatStorageData[storageId] then
+		return -- Not a boat storage, regular storage server will handle it
+	end
+	
+	local boat = getBoatById(storageId)
+	if not boat then
 		return
 	end
 
@@ -96,13 +107,13 @@ Signal.ListenRemote("BoatStorage:Withdraw", function(player, boatId, stackId)
 	if not inv then return end
 
 	if #inv.Inventory >= InventoryServer.MaxStacks then
-		Signal.FireClient(player, "BoatStorage:Error", "Inventory is full!")
+		Signal.FireClient(player, "Storage:Error", "Inventory is full!")
 		return
 	end
 
 	-- Find stack in boat storage
 	local stackIdx, stackData
-	for i, stack in ipairs(BoatStorageData[boatId].Items) do
+	for i, stack in ipairs(BoatStorageData[storageId].Items) do
 		if stack.StackId == stackId then
 			stackIdx = i
 			stackData = stack
@@ -112,9 +123,9 @@ Signal.ListenRemote("BoatStorage:Withdraw", function(player, boatId, stackId)
 	if not stackIdx then return end
 
 	table.insert(inv.Inventory, stackData)
-	table.remove(BoatStorageData[boatId].Items, stackIdx)
+	table.remove(BoatStorageData[storageId].Items, stackIdx)
 
-	Signal.FireClient(player, "BoatStorage:Update", boatId, BoatStorageData[boatId].Items, BoatStorageData[boatId].MaxStacks)
+	Signal.FireClient(player, "Storage:Update", storageId, BoatStorageData[storageId].Items, BoatStorageData[storageId].MaxStacks)
 	Signal.FireClient(player, "InventoryClient:Update", inv)
 end)
 

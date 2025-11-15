@@ -47,6 +47,8 @@ if not boatGui then
 		local boatId = boatGui:GetAttribute("CurrentBoatId")
 		if boatId then
 			print("[BoatGui] Opening boat storage for boat:", boatId)
+			-- Send BoatStorage:Open request to server
+			-- Server will respond with regular Storage:Open that existing StorageClient will handle
 			Signal.FireServer("BoatStorage:Open", boatId)
 		else
 			warn("[BoatGui] No boat ID found")
@@ -55,38 +57,5 @@ if not boatGui then
 	
 	print("[BoatGui] Created BoatGui with storage button")
 end
-
--- Listen for boat storage open response
-Signal.ListenClient("BoatStorage:Open", function(boatId, items, maxStacks)
-	print("[BoatGui] Boat storage opened:", boatId, "Items:", #items, "MaxStacks:", maxStacks)
-	
-	-- Find or create storage GUI
-	local storageGui = playerGui:FindFirstChild("StorageGui")
-	if not storageGui then
-		warn("[BoatGui] StorageGui not found - creating basic storage display")
-		-- The storage GUI should already exist from StorageClientProximity
-		-- For now, we'll just log that we opened it
-		-- In a real implementation, you'd reuse the existing StorageGui system
-	end
-	
-	-- Update storage GUI to show boat storage
-	-- This would integrate with the existing storage system UI
-	-- For now, just signal that it opened
-	Signal.FireClient(player, "Storage:Open", boatId, items, maxStacks)
-end)
-
--- Listen for boat storage errors
-Signal.ListenClient("BoatStorage:Error", function(errorMsg)
-	warn("[BoatGui] Boat storage error:", errorMsg)
-	-- Show error to player
-	-- You could create a notification system here
-end)
-
--- Listen for boat storage updates
-Signal.ListenClient("BoatStorage:Update", function(boatId, items, maxStacks)
-	print("[BoatGui] Boat storage updated:", boatId, "Items:", #items)
-	-- Update the storage GUI if it's open
-	Signal.FireClient(player, "Storage:Update", boatId, items, maxStacks)
-end)
 
 print("[BoatGui] BoatGui setup complete")
