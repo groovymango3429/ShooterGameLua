@@ -92,6 +92,27 @@ game.ReplicatedStorage.Events.PlayHitSound.OnClientEvent:Connect(function(weapon
 	CameraKick() -- Camera feedback when hit lands!
 end)
 
+-- Listen for PlayTreeHitSound event for wood impact sounds
+game.ReplicatedStorage.Events.PlayTreeHitSound.OnClientEvent:Connect(function(weaponName)
+	-- Play wood impact sound from ReplicatedStorage.Sounds.WoodImpact
+	local woodImpactSound = game.ReplicatedStorage:FindFirstChild("Sounds")
+	if woodImpactSound then
+		woodImpactSound = woodImpactSound:FindFirstChild("WoodImpact")
+	end
+	
+	if woodImpactSound and woodImpactSound:IsA("Sound") then
+		local sound = woodImpactSound:Clone()
+		local char = player.Character
+		if char and char:FindFirstChild("Head") then
+			sound.Parent = char.Head
+		else
+			sound.Parent = workspace.CurrentCamera
+		end
+		sound:Play()
+		game:GetService("Debris"):AddItem(sound, 2)
+	end
+end)
+
 local hud = player.PlayerGui:WaitForChild("HUD")
 local ammoLabel = hud:WaitForChild("Ammo")
 local maxAmmoLabel = ammoLabel:WaitForChild("MaxAmmo")
